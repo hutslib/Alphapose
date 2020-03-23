@@ -7,6 +7,8 @@ import time
 from multiprocessing.dummy import Pool as ThreadPool
 import numpy as np
 from opt import opt
+import ntpath
+
 
 ''' Constant Configuration '''
 delta1 = 1
@@ -287,6 +289,7 @@ def write_json(all_results, outputpath, for_eval=False):
     form = opt.format
     json_results = []
     json_results_cmu = {}
+    filename = opt.video
     for im_res in all_results:
         im_name = im_res['imgname']
         for human in im_res['result']:
@@ -342,22 +345,22 @@ def write_json(all_results, outputpath, for_eval=False):
                 json_results.append(result)
 
     if form == 'cmu': # the form of CMU-Pose
-        with open(os.path.join(outputpath,'alphapose-results.json'), 'w') as json_file:
+        with open(os.path.join(outputpath,'alphapose-results_'+ntpath.basename(filename).split('.')[0]+'.json'), 'w') as json_file:
             json_file.write(json.dumps(json_results_cmu))
-            if not os.path.exists(os.path.join(outputpath,'sep-json')):
-                os.mkdir(os.path.join(outputpath,'sep-json'))
+            if not os.path.exists(os.path.join(outputpath,'sep-json_'+ntpath.basename(filename).split('.')[0])):
+                os.mkdir(os.path.join(outputpath,'sep-json_'+ntpath.basename(filename).split('.')[0]))
             for name in json_results_cmu.keys():
-                with open(os.path.join(outputpath,'sep-json',name.split('.')[0]+'.json'),'w') as json_file:
+                with open(os.path.join(outputpath,'sep-json_'+ntpath.basename(filename).split('.')[0],name.split('.')[0]+'.json'),'w') as json_file:
                     json_file.write(json.dumps(json_results_cmu[name]))
     elif form == 'open': # the form of OpenPose
-        with open(os.path.join(outputpath,'alphapose-results.json'), 'w') as json_file:
+        with open(os.path.join(outputpath,'alphapose-results_'+ntpath.basename(filename).split('.')[0]+'.json'), 'w') as json_file:
             json_file.write(json.dumps(json_results_cmu))
-            if not os.path.exists(os.path.join(outputpath,'sep-json')):
-                os.mkdir(os.path.join(outputpath,'sep-json'))
+            if not os.path.exists(os.path.join(outputpath,'sep-json_'+ntpath.basename(filename).split('.')[0])):
+                os.mkdir(os.path.join(outputpath,'sep-json_'+ntpath.basename(filename).split('.')[0]))
             for name in json_results_cmu.keys():
-                with open(os.path.join(outputpath,'sep-json',name.split('.')[0]+'.json'),'w') as json_file:
+                with open(os.path.join(outputpath,'sep-json_'+ntpath.basename(filename).split('.')[0],name.split('.')[0]+'.json'),'w') as json_file:
                     json_file.write(json.dumps(json_results_cmu[name]))
     else:
-        with open(os.path.join(outputpath,'alphapose-results.json'), 'w') as json_file:
+        with open(os.path.join(outputpath,'alphapose-results_'+ntpath.basename(filename).split('.')[0]+'.json'), 'w') as json_file:
             json_file.write(json.dumps(json_results))
 
