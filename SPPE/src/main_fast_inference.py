@@ -66,6 +66,6 @@ class InferenNet_fast(nn.Module):
 
     def forward(self, x):
         out = self.pyranet(x)
-        out = out.narrow(1, 0, 17)
+        out = out.narrow(1, 17, 16)
 
         return out

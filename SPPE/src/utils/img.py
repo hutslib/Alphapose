@@ -1,3 +1,8 @@
+# -------------------------------------------
+#  @description: change 17->16 to achieve mpii keypoint format
+#  @data: 2020-03-24
+#  @version: 1.0
+# -------------------------------------------
 import numpy as np
 import cv2
 import torch
@@ -219,7 +224,7 @@ def transformBoxInvert(pt, ul, br, inpH, inpW, resH, resW):
 
 def transformBoxInvert_batch(pt, ul, br, inpH, inpW, resH, resW):
     '''
-    pt:     [n, 17, 2]
+    pt:     [n, 16, 2]
     ul:     [n, 2]
     br:     [n, 2]
     '''
@@ -232,14 +237,14 @@ def transformBoxInvert_batch(pt, ul, br, inpH, inpW, resH, resW):
     lenW = lenH * (inpW / inpH)
 
     _pt = (pt * lenH[:, np.newaxis, np.newaxis]) / resH
-    _pt[:, :, 0] = _pt[:, :, 0] - ((lenW[:, np.newaxis].repeat(1, 17) - 1) /
-                                   2 - center[:, 0].unsqueeze(-1).repeat(1, 17)).clamp(min=0)
-    _pt[:, :, 1] = _pt[:, :, 1] - ((lenH[:, np.newaxis].repeat(1, 17) - 1) /
-                                   2 - center[:, 1].unsqueeze(-1).repeat(1, 17)).clamp(min=0)
+    _pt[:, :, 0] = _pt[:, :, 0] - ((lenW[:, np.newaxis].repeat(1, 16) - 1) /
+                                   2 - center[:, 0].unsqueeze(-1).repeat(1, 16)).clamp(min=0)
+    _pt[:, :, 1] = _pt[:, :, 1] - ((lenH[:, np.newaxis].repeat(1, 16) - 1) /
+                                   2 - center[:, 1].unsqueeze(-1).repeat(1, 16)).clamp(min=0)
 
     new_point = torch.zeros(pt.size())
-    new_point[:, :, 0] = _pt[:, :, 0] + ul[:, 0].unsqueeze(-1).repeat(1, 17)
-    new_point[:, :, 1] = _pt[:, :, 1] + ul[:, 1].unsqueeze(-1).repeat(1, 17)
+    new_point[:, :, 0] = _pt[:, :, 0] + ul[:, 0].unsqueeze(-1).repeat(1, 16)
+    new_point[:, :, 1] = _pt[:, :, 1] + ul[:, 1].unsqueeze(-1).repeat(1, 16)
     return new_point
 
 
@@ -378,7 +383,7 @@ def drawMPII(inps, preds):
     plt.imshow(imgs[0])
     ax = fig.add_subplot(1, 1, 1)
     #print(preds.shape)
-    for p in range(16):
+    for p in range(16): #origin 
         x, y = preds[0][p]
         cor = (round(x), round(y)), 10
         ax.add_patch(plt.Circle(*cor, color=p_color[p]))
@@ -406,7 +411,7 @@ def drawCOCO(inps, preds, scores):
     plt.imshow(imgs[0])
     ax = fig.add_subplot(1, 1, 1)
     #print(preds.shape)
-    for p in range(17):
+    for p in range(16):
         if scores[0][p][0] < 0.2:
             continue
         x, y = preds[0][p]

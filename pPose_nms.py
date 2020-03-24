@@ -3,6 +3,11 @@
 #  @description: change save json name
 #  @data: 2020-03-24
 # -------------------------------------------
+# -------------------------------------------
+#  @description: change 17->16 to achieve mpii keypoint format
+#  @data: 2020-03-24
+#  @version: 1.0
+# -------------------------------------------
 import torch
 import json
 import os
@@ -31,8 +36,8 @@ def pose_nms(bboxes, bbox_scores, pose_preds, pose_scores):
     Parametric Pose NMS algorithm
     bboxes:         bbox locations list (n, 4)
     bbox_scores:    bbox scores list (n,)
-    pose_preds:     pose locations list (n, 17, 2)
-    pose_scores:    pose scores list    (n, 17, 1)
+    pose_preds:     pose locations list (n, 16, 2)
+    pose_scores:    pose scores list    (n, 16, 1)
     '''
     #global ori_pose_preds, ori_pose_scores, ref_dists
 
@@ -94,7 +99,7 @@ def pose_nms(bboxes, bbox_scores, pose_preds, pose_scores):
     #final_result = [item for item in final_result if item is not None]
 
     for j in range(len(pick)):
-        ids = np.arange(17)
+        ids = np.arange(16)
         max_score = torch.max(scores_pick[j, ids, 0])
 
         if max_score < scoreThreds:
@@ -129,7 +134,7 @@ def pose_nms(bboxes, bbox_scores, pose_preds, pose_scores):
 def filter_result(args):
     score_pick, merge_id, pred_pick, pick, bbox_score_pick = args
     global ori_pose_preds, ori_pose_scores, ref_dists
-    ids = np.arange(17)
+    ids = np.arange(16)
     max_score = torch.max(score_pick[ids, 0])
 
     if max_score < scoreThreds:
@@ -162,20 +167,20 @@ def p_merge(ref_pose, cluster_preds, cluster_scores, ref_dist):
     '''
     Score-weighted pose merging
     INPUT:
-        ref_pose:       reference pose          -- [17, 2]
-        cluster_preds:  redundant poses         -- [n, 17, 2]
-        cluster_scores: redundant poses score   -- [n, 17, 1]
+        ref_pose:       reference pose          -- [16, 2]
+        cluster_preds:  redundant poses         -- [n, 16, 2]
+        cluster_scores: redundant poses score   -- [n, 16, 1]
         ref_dist:       reference scale         -- Constant
     OUTPUT:
-        final_pose:     merged pose             -- [17, 2]
-        final_score:    merged score            -- [17]
+        final_pose:     merged pose             -- [16, 2]
+        final_score:    merged score            -- [16]
     '''
     dist = torch.sqrt(torch.sum(
         torch.pow(ref_pose[np.newaxis, :] - cluster_preds, 2),
         dim=2
-    ))  # [n, 17]
+    ))  # [n, 16]
 
-    kp_num = 17
+    kp_num = 16
     ref_dist = min(ref_dist, 15)
 
     mask = (dist <= ref_dist)
@@ -209,20 +214,20 @@ def p_merge_fast(ref_pose, cluster_preds, cluster_scores, ref_dist):
     '''
     Score-weighted pose merging
     INPUT:
-        ref_pose:       reference pose          -- [17, 2]
-        cluster_preds:  redundant poses         -- [n, 17, 2]
-        cluster_scores: redundant poses score   -- [n, 17, 1]
+        ref_pose:       reference pose          -- [16, 2]
+        cluster_preds:  redundant poses         -- [n, 16, 2]
+        cluster_scores: redundant poses score   -- [n, 16, 1]
         ref_dist:       reference scale         -- Constant
     OUTPUT:
-        final_pose:     merged pose             -- [17, 2]
-        final_score:    merged score            -- [17]
+        final_pose:     merged pose             -- [16, 2]
+        final_score:    merged score            -- [16]
     '''
     dist = torch.sqrt(torch.sum(
         torch.pow(ref_pose[np.newaxis, :] - cluster_preds, 2),
         dim=2
     ))
 
-    kp_num = 17
+    kp_num = 16
     ref_dist = min(ref_dist, 15)
 
     mask = (dist <= ref_dist)
@@ -254,7 +259,7 @@ def get_parametric_distance(i, all_preds, keypoint_scores, ref_dist):
     mask = (dist <= 1)
 
     # Define a keypoints distance
-    score_dists = torch.zeros(all_preds.shape[0], 17)
+    score_dists = torch.zeros(all_preds.shape[0], 16)
     keypoint_scores.squeeze_()
     if keypoint_scores.dim() == 1:
         keypoint_scores.unsqueeze_(0)
@@ -323,7 +328,7 @@ def write_json(all_results, outputpath, for_eval=False):
                 tmp={'joints':[]}
                 result['keypoints'].append((result['keypoints'][15]+result['keypoints'][18])/2)
                 result['keypoints'].append((result['keypoints'][16]+result['keypoints'][19])/2)
-                result['keypoints'].append((result['keypoints'][17]+result['keypoints'][20])/2)
+                result['keypoints'].append((result['keypoints'][16]+result['keypoints'][20])/2)
                 indexarr=[0,51,18,24,30,15,21,27,36,42,48,33,39,45,6,3,12,9]
                 for i in indexarr:
                     tmp['joints'].append(result['keypoints'][i])
@@ -338,7 +343,7 @@ def write_json(all_results, outputpath, for_eval=False):
                 tmp={'pose_keypoints_2d':[]}
                 result['keypoints'].append((result['keypoints'][15]+result['keypoints'][18])/2)
                 result['keypoints'].append((result['keypoints'][16]+result['keypoints'][19])/2)
-                result['keypoints'].append((result['keypoints'][17]+result['keypoints'][20])/2)
+                result['keypoints'].append((result['keypoints'][16]+result['keypoints'][20])/2)
                 indexarr=[0,51,18,24,30,15,21,27,36,42,48,33,39,45,6,3,12,9]
                 for i in indexarr:
                     tmp['pose_keypoints_2d'].append(result['keypoints'][i])
