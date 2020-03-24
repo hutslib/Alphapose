@@ -1,5 +1,8 @@
 # coding: utf-8
-
+# -------------------------------------------
+#  @description: change sys path conflit
+#  @data: 2020-03-24
+# -------------------------------------------
 '''
 File: tracker-general.py
 Project: AlphaPose
@@ -11,7 +14,12 @@ Modified By: Yuliang Xiu (yuliangxiu@sjtu.edu.cn>)
 Author: Yuliang Xiu (yuliangxiu@sjtu.edu.cn)
 Copyright 2018 - 2018 Shanghai Jiao Tong University, Machine Vision and Intelligence Group
 '''
-
+import sys
+# print(sys.path)
+if '/opt/ros/kinetic/lib/python2.7/dist-packages' in sys.path:
+    # print('!!!!')
+    sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
+# print(sys.path)
 import numpy as np
 import os
 import json
@@ -120,7 +128,7 @@ if __name__ == '__main__':
 
         with open(notrack_json) as f:
             results = json.load(f)
-            for i in xrange(len(results)):
+            for i in range(len(results)):
                 imgpath = results[i]['image_id']
                 if last_image_name != imgpath:
                     results_forvis[imgpath] = []
