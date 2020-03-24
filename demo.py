@@ -1,3 +1,23 @@
+# _*_ coding: utf-8 _*_
+# -------------------------------------------
+#  @description:  为demo添加注释,添加一些修改 save_video
+#  @author: hts
+#  @data: 2020-03-24
+#  @version: 1.0
+#  @github: hutslib
+# -------------------------------------------
+import sys
+# print(sys.path)
+if '/opt/ros/kinetic/lib/python2.7/dist-packages' in sys.path:
+    # print('!!!!')
+    sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
+# print(sys.path)
+import sys
+# print(sys.path)
+if '/opt/ros/kinetic/lib/python2.7/dist-packages' in sys.path:
+    # print('!!!!')
+    sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
+# print(sys.path)
 import torch
 from torch.autograd import Variable
 import torch.nn.functional as F
@@ -19,6 +39,8 @@ import time
 from fn import getTime
 
 from pPose_nms import pose_nms, write_json
+
+# from my_detect import fps,
 
 args = opt
 args.dataset = 'coco'
@@ -67,6 +89,8 @@ if __name__ == "__main__":
 
     # Init data writer
     writer = DataWriter(args.save_video).start()
+    # save_path = os.path.join(args.outputpath, 'AlphaPose_'+ntpath.basename(videofile).split('.')[0]+'.avi')
+
 
     data_len = data_loader.length()
     im_names_desc = tqdm(range(data_len))
