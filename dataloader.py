@@ -1,3 +1,4 @@
+# _*_ coding: utf-8 _*_
 import os
 import torch
 from torch.autograd import Variable
@@ -267,14 +268,37 @@ class VideoLoader:
 
     def len(self):
         return self.Q.qsize()
+    
+    # def save_pic(self):
+    #     num = 0
+    #     while True:
+    #         success, frame = stream.read() # 按帧读取捕获的视频，第一个返回值为布尔值，表示帧读取是否正确，如果视频读取到结尾则返回False，第二个元素为读取到的帧。
+    #         if success:
+    #             num += 1
+    #             # print('suc')
+    #             # cv2.imshow('frame%d' %num, frame)
+    #             # print(video.split('.')[0])
+    #             # print(pic_path + foldername + '/pic%s%d.jpg' %(video.split('.')[0], num)) 
+    #             cv2.imwrite(pic_path + foldername + '/pic%s%d.jpg' %(video.split('.')[0], num), frame)
+    #         else: 
+    #             break
+    #         # if cv2.waitKey(5) == 27:
+    #             # break
+    #     print('finish')
+    #     cap.release() # 释放cap对象
+    #     # cv2.destroyAllWindows() # 关闭所有窗口
 
 
 class DetectionLoader:
+    #加载YOLO
     def __init__(self, dataloder, batchSize=1, queueSize=1024):
         # initialize the file video stream along with the boolean
         # used to indicate if the thread should be stopped or not
+        #加载YOLO模型
         self.det_model = Darknet("yolo/cfg/yolov3-spp.cfg")
+        #加载模型权重
         self.det_model.load_weights('models/yolo/yolov3-spp.weights')
+        # The input size of detection network.32的倍数
         self.det_model.net_info['height'] = opt.inp_dim
         self.det_inp_dim = int(self.det_model.net_info['height'])
         assert self.det_inp_dim % 32 == 0

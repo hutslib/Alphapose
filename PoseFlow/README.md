@@ -54,6 +54,19 @@ make clean all
 make
 cd ..
 ```
+在make时可能会出现一些问题：
+
+【1】 g++: error: /usr/local/atlas/lib/libsatlas.so: No such file or directory
+
+解决
+```
+sudo apt-get install libatlas-dev
+sudo apt-get install libatlas-base-dev
+cd /usr/lib
+sudo ld -shared -o libsatlas.so --whole-archive libatlas.a liblapack.a --no-whole-archive libf77blas.a libcblas.a
+修改Makefile
+LAPACKLDFLAGS=/usr/lib
+```
 
 ## For Any Datasets (General Version)
 
