@@ -12,12 +12,6 @@ if '/opt/ros/kinetic/lib/python2.7/dist-packages' in sys.path:
     # print('!!!!')
     sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
 # print(sys.path)
-import sys
-# print(sys.path)
-if '/opt/ros/kinetic/lib/python2.7/dist-packages' in sys.path:
-    # print('!!!!')
-    sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
-# print(sys.path)
 import torch
 from torch.autograd import Variable
 import torch.nn.functional as F
@@ -43,7 +37,8 @@ from pPose_nms import pose_nms, write_json
 # from my_detect import fps,
 
 args = opt
-args.dataset = 'coco'
+# print(args.dataset)
+# args.dataset = 'coco'
 if not args.sp:
     torch.multiprocessing.set_start_method('forkserver', force=True)
     torch.multiprocessing.set_sharing_strategy('file_system')

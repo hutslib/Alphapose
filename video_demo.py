@@ -1,3 +1,17 @@
+# _*_ coding: utf-8 _*_
+# -------------------------------------------
+#  @description:  为video_demo添加注释，解决syspath冲突
+#  @author: hts
+#  @data: 2020-03-23
+#  @version: 1.0
+#  @github: hutslib
+# -------------------------------------------
+import sys
+# print(sys.path)
+if '/opt/ros/kinetic/lib/python2.7/dist-packages' in sys.path:
+    # print('!!!!')
+    sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
+# print(sys.path)
 import torch
 from torch.autograd import Variable
 import torch.nn.functional as F
@@ -14,7 +28,7 @@ from SPPE.src.main_fast_inference import *
 
 import ntpath
 import os
-import sys
+# import sys
 from tqdm import tqdm
 import time
 from fn import getTime
@@ -24,7 +38,9 @@ from pPose_nms import pose_nms, write_json
 
 args = opt
 args.dataset = 'coco'
-if not args.sp:
+if not args.sp: 
+    #action to store true means Use single process for pytorch
+    #arges中的变量，触发在pytorch中使用单线程
     torch.multiprocessing.set_start_method('forkserver', force=True)
     torch.multiprocessing.set_sharing_strategy('file_system')
 
@@ -38,6 +54,7 @@ if __name__ == "__main__":
         raise IOError('Error: must contain --video')
 
     # Load input video
+    #读取视频，获取视频的信息（总帧数，帧频，大小）
     data_loader = VideoLoader(videofile, batchSize=args.detbatch).start()
     (fourcc,fps,frameSize) = data_loader.videoinfo()
 
