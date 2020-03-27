@@ -1,3 +1,8 @@
+# -------------------------------------------
+#  @description: change 17->16 to achieve mpii keypoint format
+#  @data: 2020-03-24
+#  @version: 1.0
+# -------------------------------------------
 import torch
 import torch.nn as nn
 import torch.utils.data
