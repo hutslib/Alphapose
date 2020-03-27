@@ -1,6 +1,6 @@
 # _*_ coding: utf-8 _*_
 # -------------------------------------------
-#  @description: process keypoint and calculate frquency 
+#  @description: process keypoint
 #  @author: hts
 #  @data: 2020-03-25
 #  @version: 1.0
@@ -41,25 +41,7 @@ class process_date:
             for self.name in names:
                 #/home/hts/Videos/202003result_mpii/a/aaa/alphapose-results-forvis-tracked.json
                 self.json_path = self.folder_dir + '/' + self.name + '/alphapose-results-forvis-tracked.json'
-                # print(self.folder_dir)
-                # print(self.name)
-                # print(self.json_path)
-                # self.write_path = self.write_path + self.name
-                # array2 = np.zeros((1,33))
-                # self.person_num = 0
                 self.output()
-            #     if self.output() == True:
-            #         print ('ture')
-            #         with open(self.write_path, 'a') as file:
-            #             for index in range(len(self.pose_keypoints_2d)):
-            #                 file.write(str(self.pose_keypoints_2d[index]))
-            #                 file.write('\n')
-            #             file.write(name + self.label + '\n')
-            #         file.close()
-            #         # self.person_id = -2  
-            # print(self.counter)   
-        
-
 
 
     def output(self):
@@ -68,29 +50,23 @@ class process_date:
         print('\033[1;45m                fileJson length                :%d \033[0m' %len(fileJson))
         for key in fileJson:
             pic = fileJson[key]
-        #     print(pic)
-        # for i in range (len(fileJson)):
-            # pic = fileJson['picIMG_%s%d.jpg' %(self.name, (i+1)*10)]
-            # print(pic)
             print('\033[0;32m person number in pic: %d \033[0m' %len(pic))
             suc_detect = False
-            self.pose_keypoints_2d = np.zeros((1,48))
+            self.pose_keypoints_2d = np.zeros((1,32),dtype = float)
             for person in pic:
-                # print(person)
+                my_kp = []
                 keypoints = person['keypoints']
-                # print(keypoints)
-                # if suc_detect: 
-                # print('pose_keypoints_2d length %d' %len(keypoints))            
                 if len(keypoints) != 48:
-                     print('\033[0;36m erro   %s\033[0m' %key)
+                     print('\033[0;36m  erro   %s\033[0m' %key)
                 else:
                     suc_detect = True
-                    self.pose_keypoints_2d = np.insert(self.pose_keypoints_2d, 0, keypoints, axis=0)
+                    for index in range(len(keypoints)):
+                        # print (index)
+                        if (index+1)%3 != 0:
+                            my_kp.append(keypoints[index])
+                            print(index)
+                    self.pose_keypoints_2d = np.insert(self.pose_keypoints_2d, 0, my_kp, axis=0)
                     print('suc   %s' %key)
-                # else:
-                #     # print(self.pose_keypoints_2d)
-                #     self.pose_keypoints_2d = np.insert(self.pose_keypoints_2d, 0, keypoints, axis=0)
-                #     print('suc%s%d' %(self.name, i))
             self.pose_keypoints_2d = np.delete(self.pose_keypoints_2d, -1, axis=0)
             if suc_detect == True:
                 # print(self.pose_keypoints_2d)
@@ -103,58 +79,6 @@ class process_date:
                 file.close()
 
                 
-            
-
-
-    # def resolveJson(self, pic_id):
-    #     fileJson = open(self.json_path,'rb')
-    #     #print(self.json_path)
-    #     fileJson = json.load(fileJson)
-    #     pic = fileJson[pic_id]
-    #     # people = fileJson["people"]
-    # #    person_id = fileJson["person_id"]
-    # #    pose_keypoints_2d = fileJson["pose_keypoints_2d"]
-    #     return (fileJson)
-
-    # def output(self):
-    #     fileJson = open(self.json_path,'rb')
-    #     fileJson = json.load(fileJson)
-    #     print(len(fileJson))
-    #     count = 0
-    #     for i in range (len(filejson)):
-    #         count = count + 1 
-    #         if count % 10 == 0 :
-    #         pic = fileJson["picIMG_aaa%d.jpg" %(i=1)*10]
-    #         for person in len(pic)
-
-
-    #     # pic = self.resolveJson()
-    #     # print(result)
-    #     for person in People:
-            
-            
-    #         # print(type(person))
-    #         # self.person_id = person['person_id']
-    #         #self.person_num += 1
-    #         count = 0
-    #         self.pose_keypoints_2d = person['pose_keypoints_2d']
-    #         print(self.pose_keypoints_2d)
-    #         for index in range(len(self.pose_keypoints_2d)):
-    #             if self.pose_keypoints_2d[index] == 0:
-    #                 self.counter[index] += 1
-    #         self.pose_keypoints_2d = [self.pose_keypoints_2d[index] for index in range(len(self.pose_keypoints_2d)) if self.pose_keypoints_2d[index] != 0 and index in self.key_point]
-    #         print(self.pose_keypoints_2d)
-    #         print(len(self.pose_keypoints_2d))
-    #         if len(self.pose_keypoints_2d) == 33:
-    #             return True
-    #         # for items, index in  self.pose_keypoints_2d:
-    #         #     print (items, index)
-    #         # #     if self.pose_keypoints_2d[items] parser.add_argument("-folder_path", type=str, default=None,
-    #         # #         count += 1
-    #         # #         self.pose_keypoints_2d.remove(0)
-    #         # # print(count)
-    #         # # print(len(self.pose_keypoints_2d))
-    #         # # print(len(self.pose_keypoints_2d))
 if __name__ == "__main__":
     
     parser = argparse.ArgumentParser()
