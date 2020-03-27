@@ -1,8 +1,8 @@
 # _*_ coding: utf-8 _*_
 # -------------------------------------------
-#  @description: process keypoint
+#  @description: process keypoint 去掉概率
 #  @author: hts
-#  @data: 2020-03-25
+#  @data: 2020-03-27
 #  @version: 1.0
 #  @github: hutslib
 # -------------------------------------------
@@ -29,6 +29,7 @@ class process_date:
         #/home/hts/Videos/202003result_mpii
         self.folder_path  = folder_path
         self.write_path = write_path
+        self.key_points = [3,4,6,7,9,10,12,13,18,19,24,25,27,28,33,34,36,37,39,40,42,43]
         labels = os.listdir(self.folder_path) #label = a
         for self.label in labels: 
             #/home/hts/Videos/202003result_mpii/a
@@ -52,21 +53,24 @@ class process_date:
             pic = fileJson[key]
             print('\033[0;32m person number in pic: %d \033[0m' %len(pic))
             suc_detect = False
-            self.pose_keypoints_2d = np.zeros((1,32),dtype = float)
-            for person in pic:
-                my_kp = []
-                keypoints = person['keypoints']
-                if len(keypoints) != 48:
-                     print('\033[0;36m  erro   %s\033[0m' %key)
-                else:
-                    suc_detect = True
-                    for index in range(len(keypoints)):
-                        # print (index)
-                        if (index+1)%3 != 0:
-                            my_kp.append(keypoints[index])
-                            print(index)
-                    self.pose_keypoints_2d = np.insert(self.pose_keypoints_2d, 0, my_kp, axis=0)
-                    print('suc   %s' %key)
+            self.pose_keypoints_2d = np.zeros((1,22),dtype = float)
+            my_counter = 0
+            for person in pic :
+                if my_counter == 0:
+                    my_counter = my_counter+1
+                    my_kp = []
+                    keypoints = person['keypoints']
+                    if len(keypoints) != 48:
+                        print('\033[0;36m  erro   %s\033[0m' %key)
+                    else:
+                        suc_detect = True
+                        for index in range(len(keypoints)):
+                            # print (index)
+                            if index in self.key_points: #去掉概率
+                                my_kp.append(keypoints[index])
+                                print(index)
+                        self.pose_keypoints_2d = np.insert(self.pose_keypoints_2d, 0, my_kp, axis=0)
+                        print('suc   %s' %key)
             self.pose_keypoints_2d = np.delete(self.pose_keypoints_2d, -1, axis=0)
             if suc_detect == True:
                 # print(self.pose_keypoints_2d)
