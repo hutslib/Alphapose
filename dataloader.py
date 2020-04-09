@@ -705,32 +705,33 @@ class DataWriter:
 
                     self.final_result.append(result)
                     if opt.save_img or opt.save_video or opt.vis:
-                        img = vis_frame(orig_img, result)
+                        img = vis_frame(orig_img, result, opt.dataset)
+
 
 
 
 
                         # wenbin
-                        for wenbin_result in result['result']:
-                            wenbin_keypoints = wenbin_result['keypoints']
-                            wenbin_kp_score = wenbin_result['kp_score']
-                            wenbin_kp_x_min = float(wenbin_keypoints[0,0])
-                            wenbin_kp_x_max = float(wenbin_keypoints[0,0])
-                            wenbin_kp_y_min = float(wenbin_keypoints[0,1])
-                            wenbin_kp_y_max = float(wenbin_keypoints[0,1])
-                            wenbin_score_sum = float(sum(wenbin_kp_score[5:9])+sum(wenbin_kp_score[11:15]))
-                            for n in range(wenbin_keypoints.shape[0]):
-                                # wenbin_score_sum += float(wenbin_kp_score[n])
-                                if wenbin_kp_x_min > float(wenbin_keypoints[n,0]):
-                                    wenbin_kp_x_min = float(wenbin_keypoints[n,0])
-                                if wenbin_kp_x_max < float(wenbin_keypoints[n,0]):
-                                    wenbin_kp_x_max = float(wenbin_keypoints[n,0])
-                                if wenbin_kp_y_min > float(wenbin_keypoints[n,1]):
-                                    wenbin_kp_y_min = float(wenbin_keypoints[n,1])
-                                if wenbin_kp_y_max < float(wenbin_keypoints[n,1]):
-                                    wenbin_kp_y_max = float(wenbin_keypoints[n,1])
-                            cv2.rectangle(img, (int(wenbin_kp_x_min), int(wenbin_kp_y_min)), (int(wenbin_kp_x_max), int(wenbin_kp_y_max)), (0, 255, 0), 2)
-                            cv2.putText(img, str(wenbin_score_sum/8), (int(wenbin_kp_x_min), int((wenbin_kp_y_min + wenbin_kp_y_max)/2)), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 255, 0),1)
+                        # for wenbin_result in result['result']:
+                        #     wenbin_keypoints = wenbin_result['keypoints']
+                        #     wenbin_kp_score = wenbin_result['kp_score']
+                        #     wenbin_kp_x_min = float(wenbin_keypoints[0,0])
+                        #     wenbin_kp_x_max = float(wenbin_keypoints[0,0])
+                        #     wenbin_kp_y_min = float(wenbin_keypoints[0,1])
+                        #     wenbin_kp_y_max = float(wenbin_keypoints[0,1])
+                        #     wenbin_score_sum = float(sum(wenbin_kp_score[5:9])+sum(wenbin_kp_score[11:15]))
+                        #     for n in range(wenbin_keypoints.shape[0]):
+                        #         # wenbin_score_sum += float(wenbin_kp_score[n])
+                        #         if wenbin_kp_x_min > float(wenbin_keypoints[n,0]):
+                        #             wenbin_kp_x_min = float(wenbin_keypoints[n,0])
+                        #         if wenbin_kp_x_max < float(wenbin_keypoints[n,0]):
+                        #             wenbin_kp_x_max = float(wenbin_keypoints[n,0])
+                        #         if wenbin_kp_y_min > float(wenbin_keypoints[n,1]):
+                        #             wenbin_kp_y_min = float(wenbin_keypoints[n,1])
+                        #         if wenbin_kp_y_max < float(wenbin_keypoints[n,1]):
+                        #             wenbin_kp_y_max = float(wenbin_keypoints[n,1])
+                        #     cv2.rectangle(img, (int(wenbin_kp_x_min), int(wenbin_kp_y_min)), (int(wenbin_kp_x_max), int(wenbin_kp_y_max)), (0, 255, 0), 2)
+                        #     cv2.putText(img, str(wenbin_score_sum/8), (int(wenbin_kp_x_min), int((wenbin_kp_y_min + wenbin_kp_y_max)/2)), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 255, 0),1)
                         ####
 
                         # wenbin
