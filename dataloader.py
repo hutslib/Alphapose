@@ -1,3 +1,7 @@
+# -------------------------------------------
+#  @description: mpii　绘制人体框
+#  @data: 2020-04-10
+# -------------------------------------------
 import os
 import torch
 from torch.autograd import Variable
