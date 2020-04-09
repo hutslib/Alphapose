@@ -1,17 +1,14 @@
 # -*- coding: utf-8 -*-
 # -------------------------------------------
 #  @description: change save json name
-#  @version: 2.0
 #  @data: 2020-03-24
 # -------------------------------------------
 # -------------------------------------------
-#  @description: change 16->16 to achieve mpii keypoint format
-#  @version: ２.1
+#  @description: change 17->16 to achieve mpii keypoint format
 #  @data: 2020-03-24
 # -------------------------------------------
 # -------------------------------------------
 #  @description: 绘制人体框
-#  @version: wenbin
 #  @data: 2020-04-08
 # -------------------------------------------
 import torch
@@ -22,6 +19,8 @@ import time
 from multiprocessing.dummy import Pool as ThreadPool
 import numpy as np
 from opt import opt
+import ntpath
+
 
 ''' Constant Configuration '''
 delta1 = 1
@@ -39,9 +38,9 @@ def pose_nms(bboxes, bbox_scores, pose_preds, pose_scores):
     '''
     Parametric Pose NMS algorithm
     bboxes:         bbox locations list (n, 4)
-    bbox_scores:    bbox scores list (n,) 各个框为人的score
-    pose_preds:     pose locations list (n, 16, 2) 各关节点的坐标
-    pose_scores:    pose scores list    (n, 16, 1) 各个关节点的score
+    bbox_scores:    bbox scores list (n,)
+    pose_preds:     pose locations list (n, 16, 2)
+    pose_scores:    pose scores list    (n, 16, 1)
     '''
     #global ori_pose_preds, ori_pose_scores, ref_dists
 
@@ -51,23 +50,21 @@ def pose_nms(bboxes, bbox_scores, pose_preds, pose_scores):
 
     #wenbin
     ori_bboxes = bboxes.clone()
-    
-    ori_bbox_scores = bbox_scores.clone() # 各个框为人的score，下面要删除，此处先备份
-    ori_pose_preds = pose_preds.clone() # 各关节点的坐标，下面要删除，此处先备份
-    ori_pose_scores = pose_scores.clone() # 各个关节点的score，下面要删除，此处先备份 [n, 16, 1]
-    # 检测到的人在原始图像上的坐标
+
+    ori_bbox_scores = bbox_scores.clone()
+    ori_pose_preds = pose_preds.clone()
+    ori_pose_scores = pose_scores.clone()
+
     xmax = bboxes[:, 2]
     xmin = bboxes[:, 0]
     ymax = bboxes[:, 3]
     ymin = bboxes[:, 1]
-    # 检测到的人的宽高
+
     widths = xmax - xmin
     heights = ymax - ymin
-    # alpha=0.1，为论文中的1/10，此处为NMS中当前batch各个人子框的阈值[n,]
     ref_dists = alpha * np.maximum(widths, heights)
 
     nsamples = bboxes.shape[0]
-    # 当前batch各个人骨架的均值 [n, 1]
     human_scores = pose_scores.mean(dim=1)
 
     human_ids = np.arange(nsamples)
@@ -81,22 +78,18 @@ def pose_nms(bboxes, bbox_scores, pose_preds, pose_scores):
         # num_visPart = torch.sum(pose_scores[pick_id] > 0.2)
 
         # Get numbers of match keypoints by calling PCK_match
-        ref_dist = ref_dists[human_ids[pick_id]]　#当前人NMS子框的阈值
-        # 公式（10）的距离，[n]，由于每次均会删除id，因而n递减
+        ref_dist = ref_dists[human_ids[pick_id]]
         simi = get_parametric_distance(pick_id, pose_preds, pose_scores, ref_dist)
-        # 返回满足条件的点的数量，[n]，由于每次均会删除id，因而n递减
         num_match_keypoints = PCK_match(pose_preds[pick_id], pose_preds, ref_dist)
 
         # Delete humans who have more than matchThreds keypoints overlap and high similarity
-        # gamma = 22.48，matchThreds = 5
-        # 迭代删除的索引
         delete_ids = torch.from_numpy(np.arange(human_scores.shape[0]))[(simi > gamma) | (num_match_keypoints >= matchThreds)]
 
         if delete_ids.shape[0] == 0:
             delete_ids = pick_id
         #else:
         #    delete_ids = torch.from_numpy(delete_ids)
-# 选出来得分最高的人，找到与之骨架重合度最高的人，从总人中删除．否则删除得分最高的人．直到没有人了．merge是需要消除的人．一个人可能重复多次出现在ｐｉｃｋ中
+
         merge_ids.append(human_ids[delete_ids])
         pose_preds = np.delete(pose_preds, delete_ids, axis=0)
         pose_scores = np.delete(pose_scores, delete_ids, axis=0)
@@ -106,15 +99,11 @@ def pose_nms(bboxes, bbox_scores, pose_preds, pose_scores):
 
         # wenbin
         bboxes = np.delete(bboxes, delete_ids, axis=0)
-# pick中存放的是全部的筛选出来的得分最高的人
+
     assert len(merge_ids) == len(pick)
     preds_pick = ori_pose_preds[pick]
     scores_pick = ori_pose_scores[pick]
     bbox_scores_pick = ori_bbox_scores[pick]
-
-    # wenbin
-    bboxes_pick = ori_bboxes[pick]
-
     #final_result = pool.map(filter_result, zip(scores_pick, merge_ids, preds_pick, pick, bbox_scores_pick))
     #final_result = [item for item in final_result if item is not None]
 
@@ -127,24 +116,10 @@ def pose_nms(bboxes, bbox_scores, pose_preds, pose_scores):
 
         # Merge poses
         merge_id = merge_ids[j]
-        # 返回冗余关节点位置和这些关节点对应的score。无冗余姿态的情况下，merge_pose==preds_pick[j]==ori_pose_preds[merge_id]，merge_score==ori_pose_scores[merge_id]
         merge_pose, merge_score = p_merge_fast(
             preds_pick[j], ori_pose_preds[merge_id], ori_pose_scores[merge_id], ref_dists[pick[j]])
 
         max_score = torch.max(merge_score[ids])
-
-        # wenbin
-        # print('---------------------')
-        # print(ori_bbox_scores[merge_id])
-        # print(bbox_scores_pick[j])
-        if torch.max(ori_bbox_scores[merge_id]) > bbox_scores_pick[j]:
-            merge_id_max = torch.argmax(ori_bbox_scores[merge_id])
-            merge_box = ori_bboxes[merge_id_max]
-            merge_box_score = ori_bbox_scores[merge_id_max]
-        else:
-            merge_box = bboxes_pick[j]
-            merge_box_score = bbox_scores_pick[j]
-
         if max_score < scoreThreds:
             continue
 
@@ -156,29 +131,11 @@ def pose_nms(bboxes, bbox_scores, pose_preds, pose_scores):
         if (1.5 ** 2 * (xmax - xmin) * (ymax - ymin) < areaThres):
             continue
 
-        ## wenbin
-        # Get boxes after NMS
-        # merge_pose_box = merge_pose - 0.3
-        # merge_pose_box_xs = merge_pose_box[:,0]
-        # merge_pose_box_ys = merge_pose_box[:,1]
-        # merge_pose_box_xmin = merge_pose_box_xs.min()
-        # merge_pose_box_xmax = merge_pose_box_xs.max()
-        # merge_pose_box_ymin = merge_pose_box_ys.min()
-        # merge_pose_box_ymax = merge_pose_box_ys.max()
-        # boxes_nms = torch.tensor([merge_pose_box_xmin, merge_pose_box_ymin, merge_pose_box_xmax, merge_pose_box_ymax])
-
-
         final_result.append({
             'keypoints': merge_pose - 0.3,
             'kp_score': merge_score,
-            'proposal_score': torch.mean(merge_score) + bbox_scores_pick[j] + 1.25 * max(merge_score),
-            
-            # wenbin
-            'box': merge_box,
-            'box_scores': merge_box_score
-            # 'box': boxes_ms
+            'proposal_score': torch.mean(merge_score) + bbox_scores_pick[j] + 1.25 * max(merge_score)
         })
-        ##
 
     return final_result
 
@@ -350,7 +307,7 @@ def write_json(all_results, outputpath, for_eval=False):
     form = opt.format
     json_results = []
     json_results_cmu = {}
-    #print(all_results)
+    filename = opt.video
     for im_res in all_results:
         im_name = im_res['imgname']
         for human in im_res['result']:
@@ -365,31 +322,12 @@ def write_json(all_results, outputpath, for_eval=False):
             kp_preds = human['keypoints']
             kp_scores = human['kp_score']
             pro_scores = human['proposal_score']
-
-            # wenbin
-            human_box = human['box']
-            box= []
-            for n in range(4):
-                box.append(float(human_box[n]))
-            box_scores = float(human['box_scores'])
-            #######
-
             for n in range(kp_scores.shape[0]):
                 keypoints.append(float(kp_preds[n, 0]))
                 keypoints.append(float(kp_preds[n, 1]))
                 keypoints.append(float(kp_scores[n]))
             result['keypoints'] = keypoints
             result['score'] = float(pro_scores)
-
-            # wenbin
-            result['box'] = box
-            result['box_scores'] = float(box_scores)
-            result['kp_box'] = human['kp_box']
-            kp_box_score = human['kp_box_score'][0]
-            result['kp_box_score'] = kp_box_score
-            fusion_box_score = (box_scores * kp_box_score) / (box_scores * kp_box_score + (1-box_scores) * (1-kp_box_score))
-            result['fusion_box_score'] = fusion_box_score
-            #####
 
             if form == 'cmu': # the form of CMU-Pose
                 if result['image_id'] not in json_results_cmu.keys():
@@ -423,7 +361,7 @@ def write_json(all_results, outputpath, for_eval=False):
                 json_results_cmu[result['image_id']]['people'].append(tmp)
             else:
                 json_results.append(result)
-##version 2.0
+
     if form == 'cmu': # the form of CMU-Pose
         with open(os.path.join(outputpath,'alphapose-results_'+ntpath.basename(filename).split('.')[0]+'.json'), 'w') as json_file:
             json_file.write(json.dumps(json_results_cmu))

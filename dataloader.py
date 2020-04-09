@@ -1,4 +1,3 @@
-# _*_ coding: utf-8 _*_
 import os
 import torch
 from torch.autograd import Variable
@@ -268,37 +267,16 @@ class VideoLoader:
 
     def len(self):
         return self.Q.qsize()
-    
-    # def save_pic(self):
-    #     num = 0
-    #     while True:
-    #         success, frame = stream.read() # 按帧读取捕获的视频，第一个返回值为布尔值，表示帧读取是否正确，如果视频读取到结尾则返回False，第二个元素为读取到的帧。
-    #         if success:
-    #             num += 1
-    #             # print('suc')
-    #             # cv2.imshow('frame%d' %num, frame)
-    #             # print(video.split('.')[0])
-    #             # print(pic_path + foldername + '/pic%s%d.jpg' %(video.split('.')[0], num)) 
-    #             cv2.imwrite(pic_path + foldername + '/pic%s%d.jpg' %(video.split('.')[0], num), frame)
-    #         else: 
-    #             break
-    #         # if cv2.waitKey(5) == 27:
-    #             # break
-    #     print('finish')
-    #     cap.release() # 释放cap对象
-    #     # cv2.destroyAllWindows() # 关闭所有窗口
 
 
 class DetectionLoader:
-    #加载YOLO
     def __init__(self, dataloder, batchSize=1, queueSize=1024):
         # initialize the file video stream along with the boolean
         # used to indicate if the thread should be stopped or not
-        #加载YOLO模型
         self.det_model = Darknet("yolo/cfg/yolov3-spp.cfg")
-        #加载模型权重
+        #self.det_model = Darknet("yolo/cfg/yolov2-voc.cfg")
         self.det_model.load_weights('models/yolo/yolov3-spp.weights')
-        # The input size of detection network.32的倍数
+        #self.det_model.load_weights('models/yolo/yolov2-voc_final.weights')
         self.det_model.net_info['height'] = opt.inp_dim
         self.det_inp_dim = int(self.det_model.net_info['height'])
         assert self.det_inp_dim % 32 == 0
@@ -345,6 +323,8 @@ class DetectionLoader:
                 # Human Detection
                 img = img.cuda()
                 prediction = self.det_model(img, CUDA=True)
+                
+                
                 # NMS process
                 dets = dynamic_write_results(prediction, opt.confidence,
                                     opt.num_classes, nms=True, nms_conf=opt.nms_thesh)
@@ -657,7 +637,7 @@ class DataWriter:
         return self
 
     def update(self):
-        # keep looping infinitely
+        # keep looping infinitely，无限循环
         while True:
             # if the thread indicator variable is set, stop the
             # thread
@@ -668,6 +648,7 @@ class DataWriter:
             # otherwise, ensure the queue is not empty
             if not self.Q.empty():
                 (boxes, scores, hm_data, pt1, pt2, orig_img, im_name) = self.Q.get()
+
                 orig_img = np.array(orig_img, dtype=np.uint8)
                 if boxes is None:
                     if opt.save_img or opt.save_video or opt.vis:
@@ -680,23 +661,90 @@ class DataWriter:
                         if opt.save_video:
                             self.stream.write(img)
                 else:
+                    # boxes非空
                     # location prediction (n, kp, 2) | score prediction (n, kp, 1)
                     if opt.matching:
+                        # matching默认为False
                         preds = getMultiPeakPrediction(
                             hm_data, pt1.numpy(), pt2.numpy(), opt.inputResH, opt.inputResW, opt.outputResH, opt.outputResW)
                         result = matching(boxes, scores.numpy(), preds)
                     else:
                         preds_hm, preds_img, preds_scores = getPrediction(
                             hm_data, pt1, pt2, opt.inputResH, opt.inputResW, opt.outputResH, opt.outputResW)
+                        
                         result = pose_nms(
                             boxes, scores, preds_img, preds_scores)
                     result = {
                         'imgname': im_name,
                         'result': result
                     }
+
+                    # wenbin
+                    for i in range(len(result['result'])):
+                        wenbin_result = result['result'][i]
+                        wenbin_keypoints = wenbin_result['keypoints']
+                        wenbin_kp_score = wenbin_result['kp_score']
+                        wenbin_kp_x_min = float(wenbin_keypoints[0,0])
+                        wenbin_kp_x_max = float(wenbin_keypoints[0,0])
+                        wenbin_kp_y_min = float(wenbin_keypoints[0,1])
+                        wenbin_kp_y_max = float(wenbin_keypoints[0,1])
+                        wenbin_score_sum = float(sum(wenbin_kp_score[5:9])+sum(wenbin_kp_score[11:15]))
+                        for n in range(wenbin_keypoints.shape[0]):
+                            # wenbin_score_sum += float(wenbin_kp_score[n])
+                            if wenbin_kp_x_min > float(wenbin_keypoints[n,0]):
+                                wenbin_kp_x_min = float(wenbin_keypoints[n,0])
+                            if wenbin_kp_x_max < float(wenbin_keypoints[n,0]):
+                                wenbin_kp_x_max = float(wenbin_keypoints[n,0])
+                            if wenbin_kp_y_min > float(wenbin_keypoints[n,1]):
+                                wenbin_kp_y_min = float(wenbin_keypoints[n,1])
+                            if wenbin_kp_y_max < float(wenbin_keypoints[n,1]):
+                                wenbin_kp_y_max = float(wenbin_keypoints[n,1])
+                        result['result'][i]['kp_box'] = [wenbin_kp_x_min, wenbin_kp_y_min, wenbin_kp_x_max, wenbin_kp_y_max]
+                        result['result'][i]['kp_box_score'] = [wenbin_score_sum/8]
+                    ####
+
                     self.final_result.append(result)
                     if opt.save_img or opt.save_video or opt.vis:
                         img = vis_frame(orig_img, result)
+
+
+
+
+                        # wenbin
+                        for wenbin_result in result['result']:
+                            wenbin_keypoints = wenbin_result['keypoints']
+                            wenbin_kp_score = wenbin_result['kp_score']
+                            wenbin_kp_x_min = float(wenbin_keypoints[0,0])
+                            wenbin_kp_x_max = float(wenbin_keypoints[0,0])
+                            wenbin_kp_y_min = float(wenbin_keypoints[0,1])
+                            wenbin_kp_y_max = float(wenbin_keypoints[0,1])
+                            wenbin_score_sum = float(sum(wenbin_kp_score[5:9])+sum(wenbin_kp_score[11:15]))
+                            for n in range(wenbin_keypoints.shape[0]):
+                                # wenbin_score_sum += float(wenbin_kp_score[n])
+                                if wenbin_kp_x_min > float(wenbin_keypoints[n,0]):
+                                    wenbin_kp_x_min = float(wenbin_keypoints[n,0])
+                                if wenbin_kp_x_max < float(wenbin_keypoints[n,0]):
+                                    wenbin_kp_x_max = float(wenbin_keypoints[n,0])
+                                if wenbin_kp_y_min > float(wenbin_keypoints[n,1]):
+                                    wenbin_kp_y_min = float(wenbin_keypoints[n,1])
+                                if wenbin_kp_y_max < float(wenbin_keypoints[n,1]):
+                                    wenbin_kp_y_max = float(wenbin_keypoints[n,1])
+                            cv2.rectangle(img, (int(wenbin_kp_x_min), int(wenbin_kp_y_min)), (int(wenbin_kp_x_max), int(wenbin_kp_y_max)), (0, 255, 0), 2)
+                            cv2.putText(img, str(wenbin_score_sum/8), (int(wenbin_kp_x_min), int((wenbin_kp_y_min + wenbin_kp_y_max)/2)), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 255, 0),1)
+                        ####
+
+                        # wenbin
+                        # Draw boxes before NMS
+                        boxes_numpy = boxes.numpy()
+                        scores_numpy = scores.numpy()
+                        boxes_num = boxes_numpy.shape[0]
+                        for n in range(boxes_num):
+                            bbox = boxes_numpy[n,:];
+                            if scores_numpy[n]>0:
+                                cv2.rectangle(img, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (0, 0, 255), 2)
+                                cv2.putText(img, str(scores_numpy[n]), (bbox[0], int((bbox[1]+bbox[3])/2)), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255),1)
+                        ####
+
                         if opt.vis:
                             cv2.imshow("AlphaPose Demo", img)
                             cv2.waitKey(30)

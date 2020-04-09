@@ -185,7 +185,20 @@ def vis_frame(frame, im_res, format='coco'):
         kp_scores = human['kp_score']
         kp_preds = torch.cat((kp_preds, torch.unsqueeze((kp_preds[5,:]+kp_preds[6,:])/2,0)))
         kp_scores = torch.cat((kp_scores, torch.unsqueeze((kp_scores[5,:]+kp_scores[6,:])/2,0)))
+        #print('kp_preds: ', kp_preds)
+        ## wenbin
+        # Draw box after nms
+        # human_box = human['box']
+        # human_box = human_box.numpy()/2
+        # human_scores = human['box_scores']
+        # human_scores = human_scores.numpy()
+        # #print('human_scores:', human_scores)
+        # #print('human_box:', human_box)
+        # cv2.rectangle(img, (human_box[0], human_box[1]), (human_box[2], human_box[3]), (0, 0, 255), 2)
+        # cv2.putText(img, str(human_scores[0]), (human_box[0], int((human_box[1]+human_box[3])/2)), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 0, 0),1)
+
         # Draw keypoints
+        #print('kp_scores.shape: ', kp_scores.shape)
         for n in range(kp_scores.shape[0]):
             if kp_scores[n] <= 0.05:
                 continue
