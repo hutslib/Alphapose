@@ -94,6 +94,7 @@ def vis_frame_fast(frame, im_res, format='coco'):
     return rendered image
     '''
     if format == 'coco':
+        print('coco')
         l_pair = [
             (0, 1), (0, 2), (1, 3), (2, 4),  # Head
             (5, 6), (5, 7), (7, 9), (6, 8), (8, 10),
@@ -108,6 +109,7 @@ def vis_frame_fast(frame, im_res, format='coco'):
                     (77,222,255), (255,156,127), 
                     (0,127,255), (255,127,77), (0,77,255), (255,77,36)]
     elif format == 'mpii':
+        print('mpii')
         l_pair = [
             (8, 9), (11, 12), (11, 10), (2, 1), (1, 0),
             (13, 14), (14, 15), (3, 4), (4, 5),
@@ -150,6 +152,7 @@ def vis_frame(frame, im_res, format='coco'):
     return rendered image
     '''
     if format == 'coco':
+        print('coco')
         l_pair = [
             (0, 1), (0, 2), (1, 3), (2, 4),  # Head
             (5, 6), (5, 7), (7, 9), (6, 8), (8, 10),
@@ -165,6 +168,7 @@ def vis_frame(frame, im_res, format='coco'):
                     (77,222,255), (255,156,127), 
                     (0,127,255), (255,127,77), (0,77,255), (255,77,36)]
     elif format == 'mpii':
+        print('mpii')
         l_pair = [
             (8, 9), (11, 12), (11, 10), (2, 1), (1, 0),
             (13, 14), (14, 15), (3, 4), (4, 5),
@@ -183,8 +187,10 @@ def vis_frame(frame, im_res, format='coco'):
         part_line = {}
         kp_preds = human['keypoints']
         kp_scores = human['kp_score']
+        # print('\033[0;32;47m %d \033[0m' % kp_scores.shape[0])
         kp_preds = torch.cat((kp_preds, torch.unsqueeze((kp_preds[5,:]+kp_preds[6,:])/2,0)))
-        kp_scores = torch.cat((kp_scores, torch.unsqueeze((kp_scores[5,:]+kp_scores[6,:])/2,0)))
+        ##coco增添了ｎｅｃｋ mpii不需要
+        # kp_scores = torch.cat((kp_scores, torch.unsqueeze((kp_scores[5,:]+kp_scores[6,:])/2,0)))
         #print('kp_preds: ', kp_preds)
         ## wenbin
         # Draw box after nms
@@ -200,6 +206,7 @@ def vis_frame(frame, im_res, format='coco'):
         # Draw keypoints
         #print('kp_scores.shape: ', kp_scores.shape)
         for n in range(kp_scores.shape[0]):
+            # print('\033[0;32;47m %d \033[0m' % kp_scores.shape[0])
             if kp_scores[n] <= 0.05:
                 continue
             cor_x, cor_y = int(kp_preds[n, 0]), int(kp_preds[n, 1])
