@@ -22,6 +22,8 @@ import time
 from multiprocessing.dummy import Pool as ThreadPool
 import numpy as np
 from opt import opt
+import ntpath
+
 
 ''' Constant Configuration '''
 delta1 = 1
@@ -81,7 +83,8 @@ def pose_nms(bboxes, bbox_scores, pose_preds, pose_scores):
         # num_visPart = torch.sum(pose_scores[pick_id] > 0.2)
 
         # Get numbers of match keypoints by calling PCK_match
-        ref_dist = ref_dists[human_ids[pick_id]]　#当前人NMS子框的阈值
+        #当前人NMS子框的阈值
+        ref_dist = ref_dists[human_ids[pick_id]]
         # 公式（10）的距离，[n]，由于每次均会删除id，因而n递减
         simi = get_parametric_distance(pick_id, pose_preds, pose_scores, ref_dist)
         # 返回满足条件的点的数量，[n]，由于每次均会删除id，因而n递减
@@ -350,6 +353,7 @@ def write_json(all_results, outputpath, for_eval=False):
     form = opt.format
     json_results = []
     json_results_cmu = {}
+    filename = opt.video
     #print(all_results)
     for im_res in all_results:
         im_name = im_res['imgname']
@@ -399,7 +403,7 @@ def write_json(all_results, outputpath, for_eval=False):
                 tmp={'joints':[]}
                 result['keypoints'].append((result['keypoints'][15]+result['keypoints'][18])/2)
                 result['keypoints'].append((result['keypoints'][16]+result['keypoints'][19])/2)
-                result['keypoints'].append((result['keypoints'][16]+result['keypoints'][20])/2)
+                result['keypoints'].append((result['keypoints'][17]+result['keypoints'][20])/2)
                 indexarr=[0,51,18,24,30,15,21,27,36,42,48,33,39,45,6,3,12,9]
                 for i in indexarr:
                     tmp['joints'].append(result['keypoints'][i])
@@ -414,7 +418,7 @@ def write_json(all_results, outputpath, for_eval=False):
                 tmp={'pose_keypoints_2d':[]}
                 result['keypoints'].append((result['keypoints'][15]+result['keypoints'][18])/2)
                 result['keypoints'].append((result['keypoints'][16]+result['keypoints'][19])/2)
-                result['keypoints'].append((result['keypoints'][16]+result['keypoints'][20])/2)
+                result['keypoints'].append((result['keypoints'][17]+result['keypoints'][20])/2)
                 indexarr=[0,51,18,24,30,15,21,27,36,42,48,33,39,45,6,3,12,9]
                 for i in indexarr:
                     tmp['pose_keypoints_2d'].append(result['keypoints'][i])
