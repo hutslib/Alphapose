@@ -98,7 +98,7 @@ def vis_frame_fast(frame, im_res, format='coco'):
     return rendered image
     '''
     if format == 'coco':
-        print('coco')
+        # print('coco')
         l_pair = [
             (0, 1), (0, 2), (1, 3), (2, 4),  # Head
             (5, 6), (5, 7), (7, 9), (6, 8), (8, 10),
@@ -113,7 +113,7 @@ def vis_frame_fast(frame, im_res, format='coco'):
                     (77,222,255), (255,156,127), 
                     (0,127,255), (255,127,77), (0,77,255), (255,77,36)]
     elif format == 'mpii':
-        print('mpii')
+        # print('mpii')
         l_pair = [
             (8, 9), (11, 12), (11, 10), (2, 1), (1, 0),
             (13, 14), (14, 15), (3, 4), (4, 5),
@@ -156,7 +156,7 @@ def vis_frame(frame, im_res, format='coco'):
     return rendered image
     '''
     if format == 'coco':
-        print('coco')
+        # print('coco')
         l_pair = [
             (0, 1), (0, 2), (1, 3), (2, 4),  # Head
             (5, 6), (5, 7), (7, 9), (6, 8), (8, 10),
@@ -172,7 +172,7 @@ def vis_frame(frame, im_res, format='coco'):
                     (77,222,255), (255,156,127), 
                     (0,127,255), (255,127,77), (0,77,255), (255,77,36)]
     elif format == 'mpii':
-        print('mpii')
+        # print('mpii')
         l_pair = [
             (8, 9), (11, 12), (11, 10), (2, 1), (1, 0),
             (13, 14), (14, 15), (3, 4), (4, 5),

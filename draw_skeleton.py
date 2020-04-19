@@ -16,7 +16,7 @@ import numpy as np
 
 def Draw_body(cor_x, cor_y, dir_name):
         
-    img_ori = cv2.imread('/home/hts/Desktop/kinect_test/a/aaa/0291_color.jpg')
+    img_ori = cv2.imread('/home/hts/kinect_pic_1/0000_color.jpg')
     sp = img_ori.shape
     print(sp)
     img = np.zeros((sp[0], sp[1]), dtype=np.uint8)
@@ -51,35 +51,37 @@ def Draw_body(cor_x, cor_y, dir_name):
 
     
     # Draw keypoints
-    for n in range(16):
+    for n in range(3):
         part_line[n] = (int(cor_x[n]), int(cor_y[n]))
         #bg = img.copy()
         cv2.circle(img, (int(cor_x[n]), int(cor_y[n])), 5, p_color[n], -1)
     
     # Draw limbs
-    for i, (start_p, end_p) in enumerate(l_pair):
-        if start_p in part_line and end_p in part_line:
-            start_xy = part_line[start_p]
-            end_xy = part_line[end_p]
-            X = (start_xy[0], end_xy[0])
-            Y = (start_xy[1], end_xy[1])
-            mX = np.mean(X)
-            mY = np.mean(Y)
-            length = ((Y[0] - Y[1]) ** 2 + (X[0] - X[1]) ** 2) ** 0.5
-            angle = math.degrees(math.atan2(Y[0] - Y[1], X[0] - X[1]))
-            stickwidth = 5
-            polygon = cv2.ellipse2Poly((int(mX),int(mY)), (int(length/2), stickwidth), int(angle), 0, 360, 1)
-            cv2.fillConvexPoly(img, polygon, line_color[i])
+    # for i, (start_p, end_p) in enumerate(l_pair):
+    #     if start_p in part_line and end_p in part_line:
+    #         start_xy = part_line[start_p]
+    #         end_xy = part_line[end_p]
+    #         X = (start_xy[0], end_xy[0])
+    #         Y = (start_xy[1], end_xy[1])
+    #         mX = np.mean(X)
+    #         mY = np.mean(Y)
+    #         length = ((Y[0] - Y[1]) ** 2 + (X[0] - X[1]) ** 2) ** 0.5
+    #         angle = math.degrees(math.atan2(Y[0] - Y[1], X[0] - X[1]))
+    #         stickwidth = 5
+    #         polygon = cv2.ellipse2Poly((int(mX),int(mY)), (int(length/2), stickwidth), int(angle), 0, 360, 1)
+    #         cv2.fillConvexPoly(img, polygon, line_color[i])
     
     cv2.imwrite(dir_name, img)
 
 if __name__ == '__main__':
-    temp = [33.17881393432617, 354.4361572265625, 0.7169342637062073, 134.62977600097656, 290.1838684082031, 0.7453361749649048, 215.79054260253906, 229.3132781982422, 0.7909862995147705, 246.225830078125, 263.1302795410156, 0.7648909091949463, 175.2101593017578, 327.382568359375, 0.6899839043617249, 97.43109130859375, 405.1616516113281, 0.5119760036468506, 236.0807342529297, 242.84010314941406, 0.7178401350975037, 320.6231994628906, 188.73289489746094, 0.8264297842979431, 327.3865966796875, 181.96949768066406, 0.7865035533905029, 351.0585021972656, 158.29762268066406, 0.7973981499671936, 225.93563842773438, 225.9315948486328, 0.2525416314601898, 246.225830078125, 205.64137268066406, 0.4038618803024292, 286.8062438964844, 168.4427032470703, 0.7751867175102234, 351.0585021972656, 209.02308654785156, 0.8188015222549438, 337.5317077636719, 246.22178649902344, 0.7530956268310547, 310.4781188964844, 280.0387878417969, 0.8791655898094177]
+    temp = [237.73190307617188, 261.40020751953125, 0.9030706882476807, 233.74618530273438, 219.5502166748047, 0.8321270942687988, 227.7676239013672, 171.72166442871094, 0.797931969165802, 253.6747589111328, 173.71450805664062, 0.7851492762565613, 249.6890411376953, 219.5502166748047, 0.8359363079071045, 249.6890411376953, 261.40020751953125, 0.8275410532951355, 239.72476196289062, 171.72166442871094, 0.8245024681091309, 237.73190307617188, 95.99311828613281, 0.8439276814460754, 237.73190307617188, 84.03596496582031, 0.8713452816009521, 237.73190307617188, 38.20026779174805, 0.8569822907447815, 211.82476806640625, 169.7288055419922, 0.8430814743041992, 205.84620666503906, 139.83596801757812, 0.7678086757659912, 213.81761169433594, 95.99311828613281, 0.8916050791740417, 263.6390686035156, 95.99311828613281, 0.8505486845970154, 269.61761474609375, 135.85025024414062, 0.8407207727432251, 269.61761474609375, 169.7288055419922, 0.8784126043319702]
     cor_x, cor_y = [], []
-    
+    pick_points = [6,12,13]
     for j in range(16):
-        cor_x.append(float(temp[j*3]))
-        cor_y.append(float(temp[j*3+1]))
+        if j in pick_points:
+            cor_x.append(float(temp[j*3]))
+            cor_y.append(float(temp[j*3+1]))
+            print(float(temp[j*3]),float(temp[j*3+1]))
         
     
     Draw_body(cor_x, cor_y, './test.jpg')

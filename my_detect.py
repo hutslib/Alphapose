@@ -27,11 +27,11 @@ parser.add_argument('--folder_path', default='/home/hts/Videos/202003video/', ty
                     help='video folder')
 # parser.add_argument('--folder_path', default='/home/hts/Videos/test/', type=str,
 #                     help='video folder')                   
-parser.add_argument('--pic_path', default='/home/hts/Pictures/202003pic_Alphapose/',type=str,
+parser.add_argument('--pic_path', default='/home/hts/Pictures/04pic/',type=str,
                     help='pic save path')
-parser.add_argument('--result_folder', default='/home/hts/Videos/202003result_mpii/', type=str,
+parser.add_argument('--result_folder', default='/home/hts/Videos/04result/', type=str,
                     help='video folder')
-parser.add_argument('--flow_folder', default='/home/hts/Videos/202003flow/', type=str,
+parser.add_argument('--flow_folder', default='/home/hts/Videos/04flow/', type=str,
                     help='flow folder')
 args = parser.parse_args()
 folder_path = args.folder_path #/home/hts/Videos/test
@@ -78,8 +78,10 @@ for foldername in folders:
             print('finish')
             cap.release() # 释放cap对象
             # cv2.destroyAllWindows() # 关闭所有窗口
+#python3 demo.py --indir /home/hts/Desktop/kinect_test/a/aaa --outdir /home/hts/Desktop/kinect_result/a/aaa --save_img  --dataset mpii
+
         #/home/hts/Pictures/202003pic_Alphapose/a/aaa #/home/hts/Videos/202003result_mpii/a/aaa 
-        cmd = 'python3 demo.py --indir ' +  pic_path + foldername + '/' + video  + ' --outdir ' + result_path  + video + ' --dataset mpii --expID 1'
+        cmd = 'python3 demo.py --indir ' +  pic_path + foldername + '/' + video  + ' --outdir ' + result_path  + video + ' --dataset mpii --expID 1 --save_img'
         print('\033[0;32m start detect! %s \033[0m' %cmd)
         os.chdir('/home/hts/AlphaPose')
         os.system(cmd)
