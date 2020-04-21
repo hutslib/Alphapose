@@ -69,7 +69,7 @@ class process_date:
         self.folder_path  = folder_path
         self.write_path = write_path
         # self.key_points = [3,4,6,7,9,10,12,13,18,19,24,25,27,28,33,34,36,37,39,40,42,43]
-        self.key_points = [0,1,3,4,6,7,9,10,12,13,15,16,18,19,21,22,24,25,27,28,36,37,39,40]
+        self.key_points = [18,19,36,37,39,40]
         labels = os.listdir(self.folder_path) #label = a
         for self.label in labels: 
             #/home/hts/Videos/202003result_mpii/a
@@ -81,7 +81,7 @@ class process_date:
             # print(names)
             for self.name in names:
                 #/home/hts/Videos/202003result_mpii/a/aaa/alphapose-results-forvis-tracked.json
-                self.json_path = self.folder_dir + '/' + self.name + '/alphapose-results-forvis-tracked.json'
+                self.json_path = self.folder_dir + '/' + self.name + '/alphapose-results_.json'
                 self.output()
 
 
@@ -93,7 +93,7 @@ class process_date:
             pic = fileJson[key]
             print('\033[0;32m person number in pic: %d \033[0m' %len(pic))
             suc_detect = False
-            self.pose_keypoints_2d = np.zeros((1,24),dtype = float)
+            self.pose_keypoints_2d = np.zeros((1,14),dtype = float)
             my_counter = 0
             for person in pic :
                 if my_counter == 0:
@@ -106,7 +106,7 @@ class process_date:
                         suc_detect = True
                         for index in range(len(keypoints)):
                             # print (index)
-                            if index in self.key_points: #只保留需要的点
+                            if index in self.key_points: #去掉概率
                                 my_kp.append(keypoints[index])
                                 # print(index)
                         self.pose_keypoints_2d = np.insert(self.pose_keypoints_2d, 0, my_kp, axis=0)
@@ -119,7 +119,7 @@ class process_date:
                             for index in range(len(self.pose_keypoints_2d[p])):
                                 file.write(str(self.pose_keypoints_2d[p][index]))
                                 file.write('\n')
-                            file.write(self.name +'\n'+ self.label + '\n'+ key + '\n')
+                            file.write(self.name + self.label + '\n')
                 file.close()
 
                 
