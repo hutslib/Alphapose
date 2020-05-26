@@ -26,6 +26,8 @@ import torch.multiprocessing as mp
 from multiprocessing import Process
 from multiprocessing import Queue as pQueue
 from threading import Thread
+from wb_utils import *
+from PoseFlow.matching import orb_matching
 # import the Queue class from Python 3
 if sys.version_info >= (3, 0):
     from queue import Queue, LifoQueue
@@ -277,10 +279,8 @@ class DetectionLoader:
     def __init__(self, dataloder, batchSize=1, queueSize=1024):
         # initialize the file video stream along with the boolean
         # used to indicate if the thread should be stopped or not
-        self.det_model = Darknet("yolo/cfg/yolov3-spp.cfg")
-        #self.det_model = Darknet("yolo/cfg/yolov2-voc.cfg")
-        self.det_model.load_weights('models/yolo/yolov3-spp.weights')
-        #self.det_model.load_weights('models/yolo/yolov2-voc_final.weights')
+        self.det_model = Darknet("yolo/cfg/yolov3-spp.cfg")#/home/wenbin/wenbin_ws/yolov4/darknet/cfg/yolov4.cfg
+        self.det_model.load_weights('models/yolo/yolov3-spp.weights')#/home/wenbin/wenbin_ws/yolov4/darknet/weights/yolov4.weights
         self.det_model.net_info['height'] = opt.inp_dim
         self.det_inp_dim = int(self.det_model.net_info['height'])
         assert self.det_inp_dim % 32 == 0
@@ -291,17 +291,22 @@ class DetectionLoader:
         self.stopped = False
         self.dataloder = dataloder
         self.batchSize = batchSize
-        self.datalen = self.dataloder.length()
+        self.datalen = self.dataloder.length()  # 图像数量
         leftover = 0
         if (self.datalen) % batchSize:
             leftover = 1
-        self.num_batches = self.datalen // batchSize + leftover
+        self.num_batches = self.datalen // batchSize + leftover  # 图像分组的数量
         # initialize the queue used to store frames read from
         # the video file
         if opt.sp:
             self.Q = Queue(maxsize=queueSize)
         else:
             self.Q = mp.Queue(maxsize=queueSize)
+        
+        # wenbin
+        self.boxes = []
+        self.scores = []
+        ###
 
     def start(self):
         # start a thread to read frames from the file video stream
@@ -319,6 +324,9 @@ class DetectionLoader:
         # keep looping the whole dataset
         for i in range(self.num_batches):
             img, orig_img, im_name, im_dim_list = self.dataloder.getitem()
+            #print('!!!!!%d'%len(orig_img))
+            print('im_name: ', im_name)
+            # print('im_dim_list: ', im_dim_list)
             if img is None:
                 self.Q.put((None, None, None, None, None, None, None))
                 return
@@ -327,17 +335,90 @@ class DetectionLoader:
                 # Human Detection
                 img = img.cuda()
                 prediction = self.det_model(img, CUDA=True)
-                
-                
+                #print(prediction)
                 # NMS process
                 dets = dynamic_write_results(prediction, opt.confidence,
                                     opt.num_classes, nms=True, nms_conf=opt.nms_thesh)
+                # opt.confidence 表示人体框的得分阈值
+                # opt.num_thesh 表示nms的阈值
                 if isinstance(dets, int) or dets.shape[0] == 0:
                     for k in range(len(orig_img)):
                         if self.Q.full():
                             time.sleep(2)
                         self.Q.put((orig_img[k], im_name[k], None, None, None, None, None))
+                        # wenbin滑动窗口
+                        for k in range(len(orig_img)):
+                            print(k,'=============')
+                            img_id = int(im_name[0].split('/')[-1].split('.')[0])
+                            # 如果不是第一张图像就获取上一张图像的人体框信息，与这一帧进行匹配
+                            if img_id != 1:
+                                print('img_id: ', img_id)
+                                print('len(self.boxes): ', len(self.boxes))
+                                boxes_k_1 = self.boxes[-2]
+                                # print(boxes_k_1)
+                                scores_k_1 = self.scores[-2]
+                                cor_file = im_name[0].split('.')[0]+'_%d_orb.txt' % (img_id-1)
+                                if not os.path.exists(cor_file) or os.stat(cor_file).st_size<200:
+                                    img1_path = im_name[0]
+                                    img2_path = opt.inputpath+'/%d.jpg' % (img_id-1)
+                                    orb_matching(img1_path,img2_path, opt.inputpath, img_id, img_id-1)                            
+                                all_cors = np.loadtxt(cor_file)
+                                has_matches = boxes_k_1.shape[0]*[0]
+                                for s in range(boxes_k_1.shape[0]):
+                                    print(s)
+                                    print('boxes_k_1.shape[0]:',boxes_k_1.shape[0])
+                                    if has_matches[s] == 0:
+                                        # print(boxes_k)
+                                        # print(boxes_k_1)
+                                        print('boxes_k_1[s]: ', boxes_k_1[s])
+                                        # print(torch.tensor([boxes_k_1[s].numpy()]))
+                                        huachuang_size = 10
+                                        huachuang_dis = 2.
+                                        huachuang_matrix = np.zeros((2*huachuang_size, 2*huachuang_size))
+                                        huachuang = boxes_k_1[s]-huachuang_dis*huachuang_size
+                                        box1_region_ids = find_region_cors_last(boxes_k_1[s], all_cors)
+                                        for row in range(2*huachuang_size):
+                                            #huachuang = boxes_k_1[s]-huachuang_dis*huachuang_size
+                                            huachuang[1] = huachuang[1]+huachuang_dis*row
+                                            huachuang[3] = huachuang[3]+huachuang_dis*row
+                                            for col in range(2*huachuang_size):
+                                                huachuang[0] = huachuang[0]+huachuang_dis
+                                                huachuang[2] = huachuang[2]+huachuang_dis
+                                                box2_region_ids = find_region_cors_next(huachuang, all_cors)
+                                                huachuang_inter = box1_region_ids & box2_region_ids
+                                                huachuang_union = box1_region_ids | box2_region_ids
+                                                huachuang_matrix[row][col] = len(huachuang_inter) / (len(huachuang_union) + 0.00001)
+                                        row, col = np.unravel_index(np.argmax(huachuang_matrix),huachuang_matrix.shape)
+                                        print('row: ', row)
+                                        print('col: ', col)
+                                        huachuang = boxes_k_1[s]-huachuang_dis*huachuang_size
+                                        huachuang[0] = huachuang[0]+huachuang_dis*col
+                                        huachuang[1] = huachuang[1]+huachuang_dis*row
+                                        huachuang[2] = huachuang[2]+huachuang_dis*col
+                                        huachuang[3] = huachuang[3]+huachuang_dis*row
+                                        if s==0:
+                                            boxes_k = torch.tensor([huachuang.numpy()])
+                                            scores_k = torch.tensor([scores_k_1[s].numpy()])
+                                        else:
+                                            boxes_k = torch.cat((boxes_k,torch.tensor([huachuang.numpy()])), 0)
+                                            #boxes_k = torch.cat((boxes_k,torch.tensor([boxes_k_1[s].numpy()])), 0)
+                                            scores_k = torch.cat((scores_k,torch.tensor([scores_k_1[s].numpy()])), 0)                                                        
+                            inps = torch.zeros(boxes_k.size(0), 3, opt.inputResH, opt.inputResW)
+                            
+                            pt1 = torch.zeros(boxes_k.size(0), 2)
+                            pt2 = torch.zeros(boxes_k.size(0), 2)
+                            if self.Q.full():
+                                time.sleep(2)
+                            #self.Q.put((orig_img[k], im_name[k], boxes_k, scores[dets[:,0]==k], inps, pt1, pt2))
+                            # wenbin
+                            self.Q.put((orig_img[k], im_name[k], boxes_k, scores_k, inps, pt1, pt2))
+                            ###
+                    # wenbin
+                    self.boxes.append(boxes)
+                    self.scores.append(scores)  
+                    ##end wenbin                               
                     continue
+
                 dets = dets.cpu()
                 im_dim_list = torch.index_select(im_dim_list,0, dets[:, 0].long())
                 scaling_factor = torch.min(self.det_inp_dim / im_dim_list, 1)[0].view(-1, 1)
@@ -354,8 +435,98 @@ class DetectionLoader:
                 boxes = dets[:, 1:5]
                 scores = dets[:, 5:6]
 
+            
+                # wenbin
+                self.boxes.append(boxes)
+                self.scores.append(scores)
+
+            print('!!!!!%d'%len(orig_img))
+            # wenbin滑动窗口
+            for k in range(len(orig_img)):
+                print(k,'=============')
+                boxes_k = boxes[dets[:,0]==k]
+                scores_k = scores[dets[:,0]==k]
+                img_id = int(im_name[0].split('/')[-1].split('.')[0])
+
+                # 如果不是第一张图像就获取上一张图像的人体框信息，与这一帧进行匹配
+                if img_id != 1:
+                    print('img_id: ', img_id)
+                    print('len(self.boxes): ', len(self.boxes))
+                    boxes_k_1 = self.boxes[-2]
+                    print('boxes_k_1:', boxes_k_1)
+                    scores_k_1 = self.scores[-2]
+                    if isinstance(boxes_k, int) or boxes_k.shape[0] == 0:
+                        if self.Q.full():
+                            time.sleep(2)
+                        self.Q.put((orig_img[k], im_name[k], None, None, None, None, None))
+                        continue
+                    cor_file = im_name[0].split('.')[0]+'_%d_orb.txt' % (img_id-1)
+                    if not os.path.exists(cor_file) or os.stat(cor_file).st_size<200:
+                        img1_path = im_name[0]
+                        img2_path = opt.inputpath+'/%d.jpg' % (img_id-1)
+                        orb_matching(img1_path,img2_path, opt.inputpath, img_id, img_id-1)
+
+                    all_cors = np.loadtxt(cor_file)
+                    match_indexes, match_scores = best_matching_hungarian(all_cors, boxes_k_1, scores_k_1, 1, boxes_k, scores_k, [1,2,1,2], [1,2,1,2])
+                    has_matches = boxes_k_1.shape[0]*[0]
+                    for pid1, pid2 in match_indexes:
+                        if match_scores[pid1][pid2] > 0.2:
+                            has_matches[pid1] = 1
+                    for s in range(boxes_k_1.shape[0]):
+                        if has_matches[s] == 0:
+                            # print(boxes_k)
+                            # print(boxes_k_1)
+                            print('boxes_k_1[s]: ', boxes_k_1[s])
+                            # print(torch.tensor([boxes_k_1[s].numpy()]))
+                            huachuang_size = 10
+                            huachuang_dis = 2.
+                            huachuang_matrix = np.zeros((2*huachuang_size, 2*huachuang_size))
+                            huachuang = boxes_k_1[s]-huachuang_dis*huachuang_size
+                            box1_region_ids = find_region_cors_last(boxes_k_1[s], all_cors)
+                            for row in range(2*huachuang_size):
+                                #huachuang = boxes_k_1[s]-huachuang_dis*huachuang_size
+                                huachuang[1] = huachuang[1]+huachuang_dis*row
+                                huachuang[3] = huachuang[3]+huachuang_dis*row
+                                for col in range(2*huachuang_size):
+                                    huachuang[0] = huachuang[0]+huachuang_dis
+                                    huachuang[2] = huachuang[2]+huachuang_dis
+                                    box2_region_ids = find_region_cors_next(huachuang, all_cors)
+                                    huachuang_inter = box1_region_ids & box2_region_ids
+                                    huachuang_union = box1_region_ids | box2_region_ids
+                                    huachuang_matrix[row][col] = len(huachuang_inter) / (len(huachuang_union) + 0.00001)
+                            row, col = np.unravel_index(np.argmax(huachuang_matrix),huachuang_matrix.shape)
+                            print('row: ', row)
+                            print('col: ', col)
+                            huachuang = boxes_k_1[s]-huachuang_dis*huachuang_size
+                            huachuang[0] = huachuang[0]+huachuang_dis*col
+                            huachuang[1] = huachuang[1]+huachuang_dis*row
+                            huachuang[2] = huachuang[2]+huachuang_dis*col
+                            huachuang[3] = huachuang[3]+huachuang_dis*row
+                            boxes_k = torch.cat((boxes_k,torch.tensor([huachuang.numpy()])), 0)
+                            #boxes_k = torch.cat((boxes_k,torch.tensor([boxes_k_1[s].numpy()])), 0)
+                            scores_k = torch.cat((scores_k,torch.tensor([scores_k_1[s].numpy()])), 0)
+
+                if isinstance(boxes_k, int) or boxes_k.shape[0] == 0:
+                    if self.Q.full():
+                        time.sleep(2)
+                    self.Q.put((orig_img[k], im_name[k], None, None, None, None, None))
+                    continue
+                inps = torch.zeros(boxes_k.size(0), 3, opt.inputResH, opt.inputResW)
+                
+                pt1 = torch.zeros(boxes_k.size(0), 2)
+                pt2 = torch.zeros(boxes_k.size(0), 2)
+                if self.Q.full():
+                    time.sleep(2)
+                #self.Q.put((orig_img[k], im_name[k], boxes_k, scores[dets[:,0]==k], inps, pt1, pt2))
+                # wenbin
+                self.Q.put((orig_img[k], im_name[k], boxes_k, scores_k, inps, pt1, pt2))
+                ###
+            
+
+            
             for k in range(len(orig_img)):
                 boxes_k = boxes[dets[:,0]==k]
+
                 if isinstance(boxes_k, int) or boxes_k.shape[0] == 0:
                     if self.Q.full():
                         time.sleep(2)
@@ -367,6 +538,8 @@ class DetectionLoader:
                 if self.Q.full():
                     time.sleep(2)
                 self.Q.put((orig_img[k], im_name[k], boxes_k, scores[dets[:,0]==k], inps, pt1, pt2))
+            
+
 
     def read(self):
         # return next frame in the queue
@@ -682,7 +855,6 @@ class DataWriter:
                         'imgname': im_name,
                         'result': result
                     }
-
                     # wenbin
                     for i in range(len(result['result'])):
                         wenbin_result = result['result'][i]
@@ -738,17 +910,17 @@ class DataWriter:
                         #     cv2.putText(img, str(wenbin_score_sum/8), (int(wenbin_kp_x_min), int((wenbin_kp_y_min + wenbin_kp_y_max)/2)), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 255, 0),1)
                         ####
 
-                        # wenbin
-                        # Draw boxes before NMS
-                        boxes_numpy = boxes.numpy()
-                        scores_numpy = scores.numpy()
-                        boxes_num = boxes_numpy.shape[0]
-                        for n in range(boxes_num):
-                            bbox = boxes_numpy[n,:];
-                            if scores_numpy[n]>0:
-                                cv2.rectangle(img, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (0, 0, 255), 2)
-                                cv2.putText(img, str(scores_numpy[n]), (bbox[0], int((bbox[1]+bbox[3])/2)), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255),1)
-                        ####
+                        # # wenbin
+                        # # Draw boxes before NMS
+                        # boxes_numpy = boxes.numpy()
+                        # scores_numpy = scores.numpy()
+                        # boxes_num = boxes_numpy.shape[0]
+                        # for n in range(boxes_num):
+                        #     bbox = boxes_numpy[n,:];
+                        #     if scores_numpy[n]>0:
+                        #         cv2.rectangle(img, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (0, 0, 255), 2)
+                        #         cv2.putText(img, str(scores_numpy[n]), (bbox[0], int((bbox[1]+bbox[3])/2)), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255),1)
+                        # ####
 
                         if opt.vis:
                             cv2.imshow("AlphaPose Demo", img)
