@@ -1,6 +1,6 @@
 # -------------------------------------------
-#  @description: mpii　绘制人体框
-#  @data: 2020-04-10
+#  @description: mpii　绘制人体框 修改绘制的mpii的骨架点和连线的颜色
+#  @data: 2020-04-22
 # -------------------------------------------
 import torch
 import re
@@ -178,8 +178,15 @@ def vis_frame(frame, im_res, format='coco'):
             (13, 14), (14, 15), (3, 4), (4, 5),
             (8, 7), (7, 6), (6, 2), (6, 3), (8, 12), (8, 13)
         ]
-        p_color = [PURPLE, BLUE, BLUE, RED, RED, BLUE, BLUE, RED, RED, PURPLE, PURPLE, PURPLE, RED, RED, BLUE, BLUE]
-        line_color = [PURPLE, BLUE, BLUE, RED, RED, BLUE, BLUE, RED, RED, PURPLE, PURPLE, RED, RED, BLUE, BLUE]
+        # p_color = [PURPLE, BLUE, BLUE, RED, RED, BLUE, BLUE, RED, RED, PURPLE, PURPLE, PURPLE, RED, RED, BLUE, BLUE]
+        # line_color = [PURPLE, BLUE, BLUE, RED, RED, BLUE, BLUE, RED, RED, PURPLE, PURPLE, RED, RED, BLUE, BLUE]
+        p_color = [ (77,255,127), (77,255,191), (77,255,204),(204,77,255),(191,77,255), (127,77,255), 
+                (0, 255, 102), (0, 191, 255),(0, 255, 255),(0, 255, 255),(191, 255, 77),(191, 255, 77), 
+                (77, 255, 204),(77,255,255), (77,204,255), (77,191,255)]
+        line_color = [(0, 215, 255), (0, 255, 204), (0, 134, 255), (0, 255, 50), 
+                (77,255,222), (77,196,255), (77,135,255), (191,255,77), (77,255,77), 
+                (77,222,255), (255,156,127), 
+                (0,127,255), (255,127,77), (0,77,255), (255,77,36)] 
     else:
         raise NotImplementedError
 
@@ -196,30 +203,34 @@ def vis_frame(frame, im_res, format='coco'):
         ##coco增添了ｎｅｃｋ mpii不需要
         # kp_scores = torch.cat((kp_scores, torch.unsqueeze((kp_scores[5,:]+kp_scores[6,:])/2,0)))
         #print('kp_preds: ', kp_preds)
-        ## wenbin
+        # wenbin
         # Draw box after nms
-        # human_box = human['box']
-        # human_box = human_box.numpy()/2
-        # human_scores = human['box_scores']
-        # human_scores = human_scores.numpy()
-        # #print('human_scores:', human_scores)
-        # #print('human_box:', human_box)
-        # cv2.rectangle(img, (human_box[0], human_box[1]), (human_box[2], human_box[3]), (0, 0, 255), 2)
-        # cv2.putText(img, str(human_scores[0]), (human_box[0], int((human_box[1]+human_box[3])/2)), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 0, 0),1)
-
+        human_box = human['box']
+        human_box = human_box.numpy()/2
+        human_scores = human['box_scores']
+        human_scores = human_scores.numpy()
+        #print('human_scores:', human_scores)
+        #print('human_box:', human_box)
+        cv2.rectangle(img, (human_box[0], human_box[1]), (human_box[2], human_box[3]), (0, 0, 255), 1)
+        # cv2.putText(img, str(human_scores[0]), (human_box[0], int((human_box[1]+human_box[3])/2)), cv2.FONT_HERSHEY_COMPLEX, 0.5, (255, 0, 0),1)
+        ##huahua
+        kp_box_score = human['kp_box_score'][0]
+        fusion_box_score = (human_scores * kp_box_score) / (human_scores * kp_box_score + (1-human_scores) * (1-kp_box_score))
+        # cv2.putText(img, str(fusion_box_score), (human_box[0], int((human_box[1]+human_box[3])/2)), cv2.FONT_HERSHEY_COMPLEX, 0.4, (255, 0, 0),1)
+        ###
         # Draw keypoints
         #print('kp_scores.shape: ', kp_scores.shape)
         for n in range(kp_scores.shape[0]):
             # print('\033[0;32;47m %d \033[0m' % kp_scores.shape[0])
-            if kp_scores[n] <= 0.05:
-                continue
+            # if kp_scores[n] <= 0.05:
+            #     continue
             cor_x, cor_y = int(kp_preds[n, 0]), int(kp_preds[n, 1])
             part_line[n] = (int(cor_x/2), int(cor_y/2))
             bg = img.copy()
-            cv2.circle(bg, (int(cor_x/2), int(cor_y/2)), 2, p_color[n], -1)
+            cv2.circle(img, (int(cor_x/2), int(cor_y/2)), 1, p_color[n], -1)
             # Now create a mask of logo and create its inverse mask also
-            transparency = max(0, min(1, kp_scores[n]))
-            img = cv2.addWeighted(bg, transparency, img, 1-transparency, 0)
+            # transparency = max(0, min(1, kp_scores[n]))
+            # img = cv2.addWeighted(bg, transparency, img, 1-transparency, 0)
         # Draw limbs
         for i, (start_p, end_p) in enumerate(l_pair):
             if start_p in part_line and end_p in part_line:
@@ -233,12 +244,13 @@ def vis_frame(frame, im_res, format='coco'):
                 mY = np.mean(Y)
                 length = ((Y[0] - Y[1]) ** 2 + (X[0] - X[1]) ** 2) ** 0.5
                 angle = math.degrees(math.atan2(Y[0] - Y[1], X[0] - X[1]))
-                stickwidth = (kp_scores[start_p] + kp_scores[end_p]) + 1
+                # stickwidth = (kp_scores[start_p] + kp_scores[end_p]) + 1
+                stickwidth = 1
                 polygon = cv2.ellipse2Poly((int(mX),int(mY)), (int(length/2), stickwidth), int(angle), 0, 360, 1)
-                cv2.fillConvexPoly(bg, polygon, line_color[i])
+                cv2.fillConvexPoly(img, polygon, line_color[i])
                 #cv2.line(bg, start_xy, end_xy, line_color[i], (2 * (kp_scores[start_p] + kp_scores[end_p])) + 1)
-                transparency = max(0, min(1, 0.5*(kp_scores[start_p] + kp_scores[end_p])))
-                img = cv2.addWeighted(bg, transparency, img, 1-transparency, 0)
+                # transparency = max(0, min(1, 0.5*(kp_scores[start_p] + kp_scores[end_p])))
+                # img = cv2.addWeighted(bg, transparency, img, 1-transparency, 0)
     img = cv2.resize(img,(width,height),interpolation=cv2.INTER_CUBIC)
     return img
 
